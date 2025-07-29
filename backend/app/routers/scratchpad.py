@@ -46,7 +46,7 @@ def extract_text_from_editorjs(content_json: Dict[Any, Any]) -> str:
     
     return "\n".join(text_parts)
 
-@router.post("/", response_model=ScratchpadResponse)
+@router.post("", response_model=ScratchpadResponse)
 async def create_scratchpad(scratchpad: ScratchpadCreate, db: Session = Depends(get_db)):
     """Create a new scratchpad entry."""
     content_text = extract_text_from_editorjs(scratchpad.content_json)
