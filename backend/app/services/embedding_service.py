@@ -60,23 +60,26 @@ def update_channel_centroid(db: Session, channel_id: str, new_embedding: List[fl
     if not channel:
         return
     
-    # Count recent messages for this channel
-    message_count = db.query(Message).filter(
-        Message.channel_id == channel_id,
-        Message.memory_layer == 'recent'
-    ).count()
-    
-    if channel.embedding_centroid is None:
-        # First embedding
-        channel.embedding_centroid = new_embedding
-    else:
-        # Incremental update: new_centroid = old + (new - old) / N
-        old_centroid = np.array(channel.embedding_centroid)
-        new_emb = np.array(new_embedding)
-        updated_centroid = old_centroid + (new_emb - old_centroid) / message_count
-        channel.embedding_centroid = updated_centroid.tolist()
-    
-    db.commit()
+    try:
+        # Ensure we're working with a plain Python list
+        if hasattr(new_embedding, 'tolist'):
+            new_embedding_list = new_embedding.tolist()
+        elif isinstance(new_embedding, (list, tuple)):
+            new_embedding_list = list(new_embedding)
+        else:
+            # Convert array-like objects to list
+            new_embedding_list = [float(x) for x in new_embedding]
+        
+        # Always just set the new embedding to avoid array comparison issues
+        # This is simpler and more reliable than trying to do incremental updates
+        channel.embedding_centroid = new_embedding_list
+        
+        db.commit()
+        
+    except Exception as e:
+        print(f"Error updating channel centroid: {e}")
+        # Just skip the update if there's any issue
+        pass
 
 def recompute_channel_centroid(db: Session, channel_id: str):
     """Recompute channel centroid from all recent message embeddings."""

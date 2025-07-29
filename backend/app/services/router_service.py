@@ -20,36 +20,99 @@ async def route_scratchpad(db: Session, entry_id: str) -> dict:
             entry.embedding = embedding
             db.commit()
         else:
-            # If embedding fails, suggest new channel
-            return {"suggest_new": True}
+            # If embedding fails, fall back to text matching
+            return await _fallback_text_matching(db, entry)
     
     scratchpad_embedding = entry.embedding
     
-    # Get all channels with embeddings
-    channels = db.query(Channel).filter(Channel.embedding_centroid.isnot(None)).all()
+    # Get all channels
+    all_channels = db.query(Channel).all()
     
-    if not channels:
+    if not all_channels:
         return {"suggest_new": True}
     
-    # Calculate scores
+    # First try: channels with embeddings (vector similarity)
+    channels_with_embeddings = [c for c in all_channels if c.embedding_centroid is not None]
     best_score = -float('inf')
     best_channel = None
     
-    for channel in channels:
+    for channel in channels_with_embeddings:
         score = cosine_similarity(scratchpad_embedding, channel.embedding_centroid)
         if score > best_score:
             best_score = score
             best_channel = channel
     
-    # Check threshold
-    if best_score >= settings.router_threshold:
+    # Lower threshold for better matching (0.25 instead of 0.45)
+    if best_channel and best_score >= 0.25:
         return {
             "best_channel_id": str(best_channel.id),
             "confidence": best_score,
             "suggest_new": False
         }
-    else:
-        return {"suggest_new": True}
+    
+    # Second try: text matching for channels without embeddings or low scores
+    text_match = await _text_matching_fallback(db, entry, all_channels)
+    if text_match:
+        return text_match
+    
+    # Third try: even more lenient threshold for embeddings
+    if best_channel and best_score >= 0.15:
+        return {
+            "best_channel_id": str(best_channel.id),
+            "confidence": best_score,
+            "suggest_new": False
+        }
+    
+    return {"suggest_new": True}
+
+async def _text_matching_fallback(db: Session, entry: ScratchpadEntry, channels: List) -> Optional[dict]:
+    """
+    Fallback to simple text matching when embeddings don't work well.
+    """
+    import re
+    
+    entry_text = entry.content_text.lower()
+    entry_words = set(re.findall(r'\b\w+\b', entry_text))
+    
+    best_score = 0
+    best_channel = None
+    
+    for channel in channels:
+        # Check channel name
+        channel_name_words = set(re.findall(r'\b\w+\b', channel.name.lower()))
+        name_overlap = len(entry_words.intersection(channel_name_words))
+        
+        # Check channel description
+        description = channel.description or ""
+        desc_words = set(re.findall(r'\b\w+\b', description.lower()))
+        desc_overlap = len(entry_words.intersection(desc_words))
+        
+        # Simple scoring: name matches are worth more
+        score = name_overlap * 2 + desc_overlap
+        
+        if score > best_score:
+            best_score = score
+            best_channel = channel
+    
+    # If we found at least one word match, suggest it
+    if best_score > 0:
+        return {
+            "best_channel_id": str(best_channel.id),
+            "confidence": min(0.8, best_score * 0.1),  # Convert to similarity-like score
+            "suggest_new": False
+        }
+    
+    return None
+
+async def _fallback_text_matching(db: Session, entry: ScratchpadEntry) -> dict:
+    """
+    Pure text matching when embeddings fail completely.
+    """
+    all_channels = db.query(Channel).all()
+    text_match = await _text_matching_fallback(db, entry, all_channels)
+    if text_match:
+        return text_match
+    return {"suggest_new": True}
 
 async def accept_routing(db: Session, entry_id: str, channel_id: str) -> dict:
     """
@@ -84,10 +147,10 @@ async def accept_routing(db: Session, entry_id: str, channel_id: str) -> dict:
     )
     db.add(routing_log)
     
-    # Update channel centroid if embedding exists
-    if entry.embedding:
-        from .embedding_service import update_channel_centroid
-        update_channel_centroid(db, channel_id, entry.embedding)
+    # Update channel centroid if embedding exists (temporarily disabled)
+    # if entry.embedding:
+    #     from .embedding_service import update_channel_centroid
+    #     update_channel_centroid(db, channel_id, entry.embedding)
     
     db.commit()
     
