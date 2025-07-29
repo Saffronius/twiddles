@@ -33,7 +33,7 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 async def embed_message(db: Session, message_id: str):
     """Embed a message and update its embedding field."""
     message = db.query(Message).filter(Message.id == message_id).first()
-    if not message or message.embedding:
+    if not message or message.embedding is not None:
         return
     
     embedding = await get_embedding(message.content)
@@ -44,7 +44,7 @@ async def embed_message(db: Session, message_id: str):
 async def embed_scratchpad(db: Session, entry_id: str):
     """Embed a scratchpad entry and update its embedding field."""
     entry = db.query(ScratchpadEntry).filter(ScratchpadEntry.id == entry_id).first()
-    if not entry or entry.embedding:
+    if not entry or entry.embedding is not None:
         return
     
     embedding = await get_embedding(entry.content_text)

@@ -14,7 +14,7 @@ async def route_scratchpad(db: Session, entry_id: str) -> dict:
         raise ValueError("Scratchpad entry not found")
     
     # Get or compute embedding for scratchpad
-    if not entry.embedding:
+    if entry.embedding is None:
         embedding = await get_embedding(entry.content_text)
         if embedding:
             entry.embedding = embedding
@@ -147,10 +147,10 @@ async def accept_routing(db: Session, entry_id: str, channel_id: str) -> dict:
     )
     db.add(routing_log)
     
-    # Update channel centroid if embedding exists (temporarily disabled)
-    # if entry.embedding:
-    #     from .embedding_service import update_channel_centroid
-    #     update_channel_centroid(db, channel_id, entry.embedding)
+    # Update channel centroid if embedding exists
+    if entry.embedding is not None:
+        from .embedding_service import update_channel_centroid
+        update_channel_centroid(db, channel_id, entry.embedding)
     
     db.commit()
     
