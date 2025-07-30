@@ -53,9 +53,20 @@ async def build_context_plain(db: Session, channel_id: str, user_input: str) -> 
     
     # Add system prompt
     system_prompt = build_system_prompt(db, channel_id)
-    if system_prompt:
-        context.append({"role": "system", "content": system_prompt})
-        total_tokens += estimate_tokens(system_prompt)
+    if not system_prompt:
+        # Default system prompt for channels without specific instructions
+        channel = db.query(Channel).filter(Channel.id == channel_id).first()
+        channel_name = channel.name if channel else "this channel"
+        channel_desc = channel.description if channel and channel.description else ""
+        
+        system_prompt = f"""You are a knowledgeable assistant helping in the "{channel_name}" channel.
+
+{f"Context about this channel: {channel_desc}" if channel_desc else ""}
+
+Respond conversationally and naturally, like you're chatting with a colleague. Be helpful, direct, and engaging. Draw insights from the conversation history and channel context when relevant. Avoid overly formal or robotic language."""
+
+    context.append({"role": "system", "content": system_prompt})
+    total_tokens += estimate_tokens(system_prompt)
     
     # Add messages
     included_message_ids = []
