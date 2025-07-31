@@ -1,6 +1,46 @@
-# Channel Second Brain MVP
+# Channel Second Brain
 
-![Channel Second Brain](https://img.shields.io/badge/Status-MVP-blue) ![Python](https://img.shields.io/badge/Python-3.11+-green) ![React](https://img.shields.io/badge/React-18+-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue)
+![Channel Second Brain](https://img.shields.io/badge/Status-MVP-blue) ![Python](https://img.shields.io/badge/Python-3.9+-green) ![React](https://img.shields.io/badge/React-18+-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue)
+
+Two versions available: **Complex** (original) and **Simple** (streamlined)
+
+## 🚀 Quick Start (Simple Version)
+
+**Want a clean, minimal notes app with RAG? Use the simple version:**
+
+```bash
+# Backend
+cd simple_backend
+pip install -r requirements.txt
+echo "OPENAI_API_KEY=your_key_here" > .env
+python3 main.py
+
+# Frontend  
+cd simple_frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 - Clean, fast, beautiful notes with AI chat!
+
+## 📊 Version Comparison
+
+| Feature | Simple Version | Complex Version |
+|---------|---------------|----------------|
+| **UI/UX** | ✅ Clean, Apple Notes-style | ❌ Complex, confusing interface |
+| **Setup** | ✅ SQLite, no Docker needed | ❌ PostgreSQL + Docker required |
+| **Learning Curve** | ✅ Instant - just notes + RAG | ❌ Steep - channels, routing, etc. |
+| **Performance** | ✅ Fast, lightweight | ❌ Heavy, over-engineered |
+| **Typography** | ✅ Beautiful Inter font | ❌ Poor font choices |
+| **Core Function** | ✅ Notes with AI search/chat | ✅ Same core + complexity |
+| **Code Size** | ✅ ~200 lines backend | ❌ ~2000+ lines backend |
+| **Dependencies** | ✅ Minimal (6 packages) | ❌ Many (20+ packages) |
+
+**Recommendation**: Use the **Simple Version** unless you specifically need channels and complex routing.
+
+---
+
+## Original Complex Version
 
 A sophisticated AI-powered knowledge management system that organizes your thoughts into a multi-level channel tree with intelligent routing, living descriptions, and advanced memory management.
 
